@@ -8,6 +8,36 @@ length-controlled win rate (LC). The LC metric is specifically designed to be ro
 ### AlpacaEval 2
 We provide generation configurations for the released models in the `alpacaeval2/configs` directory, and the corresponding generation templates can be found in `alpacaeval2/templates`. To evaluate the models on AlpacaEval 2, please use the [`alpaca-eval`](https://github.com/tatsu-lab/alpaca_eval) package.
 
+### 🔧 To Run AE2 Evaluation
+
+#### ✅ Environment Setup
+
+Install the required evaluation package using the pip from your Conda environment:
+
+```bash
+/home/hubing/miniconda3/envs/sim/bin/pip install alpaca-eval==0.6.2
+```
+
+#### ⚙️ Configuration
+
+Before running the evaluation, please adjust the following settings:
+
+* Open `configs.yaml` and **add your API key**
+* In `gemma-2-9b-it/configs.yaml`, update the value of:
+
+  ```yaml
+  model_name: <your_model_name>
+  ```
+
+#### 🚀 Run Evaluation
+
+After completing the configuration, start the evaluation by running:
+
+```bash
+bash eval.sh
+```
+
+
 ### Arena-Hard
 We provide generation configurations for the released models in the `arenahard/configs` directory, and the corresponding generation templates can be found in `arenahard/templates`. To evaluate the models on Arena-Hard, please use the [`arena-hard-auto`](https://github.com/lm-sys/arena-hard-auto) package.
 

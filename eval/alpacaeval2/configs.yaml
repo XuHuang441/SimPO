@@ -1,0 +1,3 @@
+default:
+    - api_key: "xxxxx"
+      base_url: "xxxxx"
