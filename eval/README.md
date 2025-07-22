@@ -15,7 +15,8 @@ We provide generation configurations for the released models in the `alpacaeval2
 Install the required evaluation package using the pip from your Conda environment:
 
 ```bash
-/home/hubing/miniconda3/envs/sim/bin/pip install alpaca-eval==0.6.2
+conda env create -f environment.yml
+conda activate ae
 ```
 
 #### ⚙️ Configuration

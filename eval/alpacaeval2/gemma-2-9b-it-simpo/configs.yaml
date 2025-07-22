@@ -5,7 +5,7 @@ gemma-2-9b-it-simpo:
     max_new_tokens: 4096
     model_kwargs:
       torch_dtype: bfloat16
-    model_name: princeton-nlp/gemma-2-9b-it-DPO
+    model_name: Timia123/gemma_simpo_july16
     stop_token_ids:
     - 1
     - 107
