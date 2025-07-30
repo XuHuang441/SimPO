@@ -5,7 +5,7 @@ import warnings
 from collections import defaultdict
 from contextlib import nullcontext
 from functools import wraps
-from typing import Any, Callable, Dict, List, Literal, Optional, Tuple, Union
+from typing import Any, Callable, List, Tuple, Union
 
 import numpy as np
 import torch
@@ -15,18 +15,13 @@ from accelerate import PartialState
 from datasets import Dataset
 from torch.utils.data import DataLoader
 from transformers import AutoModelForCausalLM, DataCollator, PreTrainedModel, PreTrainedTokenizerBase, Trainer
-from trl.trainer import CPOTrainer
 from transformers.trainer_callback import TrainerCallback
 from transformers.trainer_utils import EvalLoopOutput
-from transformers.utils import is_torch_fx_proxy
 
 from trl.import_utils import is_peft_available, is_wandb_available
-from simpo_config import SimPOConfig
+from scripts.simpo_config import SimPOConfig
 
-from dataclasses import dataclass
 from typing import Dict, Literal, Optional
-
-from transformers import TrainingArguments
 
 from trl.trainer.utils import (
     DPODataCollatorWithPadding,

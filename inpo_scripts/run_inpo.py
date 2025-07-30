@@ -1,3 +1,4 @@
+
 import logging
 import random
 import sys
@@ -25,14 +26,15 @@ from alignment import (
 from alignment.data import maybe_insert_system_message, is_openai_format
 from peft import PeftConfig, PeftModel
 
+
+
 # =====================================================================================
 # NEW: Import INPO classes
 # =====================================================================================
 from inpo_scripts.inpo_trainer import INPOTrainer  # Assume you saved your INPOTrainer in this file
-from inpo_scripts.inpo_config import INPOConfig  # Assume you saved your INPOConfig in this file
-
+from inpo_scripts.inpo_config import INPOConfig     # Assume you saved your INPOConfig in this file
 # =====================================================================================
-
+from datasets import load_from_disk
 
 logger = logging.getLogger(__name__)
 
@@ -43,10 +45,10 @@ MISTRAL_CHAT_TEMPLATE = "{% if messages[0]['role'] == 'system' %}{% set loop_mes
 # NEW: Utility function for logps calculation (adapted from TRL's DPOTrainer)
 # =====================================================================================
 def get_batch_logps(
-        logits: torch.FloatTensor,
-        labels: torch.LongTensor,
-        average_log_prob: bool = True,
-        label_pad_token_id: int = -100,
+    logits: torch.FloatTensor,
+    labels: torch.LongTensor,
+    average_log_prob: bool = True,
+    label_pad_token_id: int = -100,
 ) -> torch.FloatTensor:
     """Compute the log probabilities of the given labels under the given logits."""
     if logits.shape[:-1] != labels.shape:
@@ -63,23 +65,21 @@ def get_batch_logps(
         return (per_token_logps * loss_mask).sum(-1) / loss_mask.sum(-1)
     else:
         return (per_token_logps * loss_mask).sum(-1)
-
-
 # =====================================================================================
 
 
 def apply_chat_template(
-        example,
-        tokenizer,
-        task: str,
-        auto_insert_empty_system_msg: bool = True,
-        change_template=None,
+    example,
+    tokenizer,
+    task: str,
+    auto_insert_empty_system_msg: bool = True,
+    change_template=None,
 ):
     # This function remains largely the same, but we will call it for "inpo" task
     if change_template == "mistral":
         tokenizer.chat_template = MISTRAL_CHAT_TEMPLATE
 
-    if task == "inpo":  # We can reuse the same logic as simpo/dpo
+    if task == "inpo": # We can reuse the same logic as simpo/dpo
         if all(k in example.keys() for k in ("chosen", "rejected")):
             if not is_openai_format(example["chosen"]) or not is_openai_format(example["rejected"]):
                 raise ValueError(f"Require OpenAI format for all messages")
@@ -115,7 +115,12 @@ def main():
     # MODIFIED: Use INPOConfig
     # =====================================================================================
     parser = H4ArgumentParser((ModelArguments, DataArguments, INPOConfig))
-    model_args, data_args, training_args = parser.parse()
+    parsed = parser.parse()
+    if isinstance(parsed, tuple):
+        model_args, data_args, training_args = parsed
+    else:
+        raise RuntimeError("Expected 3 arguments (Model, Data, Training), got 1.")
+
     # =====================================================================================
 
     #######
@@ -145,50 +150,27 @@ def main():
     ###############
     # Load datasets
     ###############
-    raw_datasets = get_datasets(
-        data_args,
-        splits=data_args.dataset_splits,
-        configs=data_args.dataset_configs,
-        columns_to_keep=["messages", "chosen", "rejected", "prompt"],
-    )
-    logger.info(
-        f"Training on the following splits: {[split + ' : ' + str(dset.num_rows) for split, dset in raw_datasets.items()]}")
+    if len(data_args.dataset_mixer) > 1:
+        raise ValueError("Direct loading only supports a single dataset in dataset_mixer.")
 
+    dataset_path = list(data_args.dataset_mixer.keys())[0]
+    logger.info(f"Loading pre-processed dataset directly from disk: {dataset_path}")
+
+    raw_datasets = load_from_disk(dataset_path)
+
+    from datasets import DatasetDict
+    if not isinstance(raw_datasets, DatasetDict):
+        raw_datasets = DatasetDict({"train": raw_datasets})
+
+    logger.info(f"Loaded dataset splits: {list(raw_datasets.keys())}")
     #####################################
     # Load tokenizer
     #####################################
     data_args.truncation_side = "left"
     tokenizer = get_tokenizer(model_args, data_args)
 
+
     column_names = list(raw_datasets["train"].features)
-
-    if "mistral" in model_args.model_name_or_path.lower():
-        change_template = "mistral"
-    else:
-        change_template = None
-
-    #####################
-    # Apply chat template
-    #####################
-    raw_datasets = raw_datasets.map(
-        apply_chat_template,
-        fn_kwargs={
-            "tokenizer": tokenizer,
-            "task": "inpo",  # MODIFIED
-            "auto_insert_empty_system_msg": data_args.auto_insert_empty_system_msg,
-            "change_template": change_template,
-        },
-        num_proc=data_args.preprocessing_num_workers,
-        remove_columns=[name for name in column_names if
-                        name not in ["reference_chosen_logps", "reference_rejected_logps"]],  # Keep new columns
-        desc="Formatting comparisons with prompt template",
-    )
-
-    for split in ["train", "test"]:
-        if split in raw_datasets:
-            raw_datasets[split] = raw_datasets[split].rename_columns(
-                {"text_prompt": "prompt", "text_chosen": "chosen", "text_rejected": "rejected"}
-            )
 
     for index in random.sample(range(len(raw_datasets["train"])), 3):
         logger.info(f"Prompt sample {index} of the raw training set:\n\n{raw_datasets['train'][index]['prompt']}")
@@ -249,11 +231,16 @@ def main():
     trainer.save_model(training_args.output_dir)
     logger.info(f"Model saved to {training_args.output_dir}")
 
+    # Add this step to explicitly save the tokenizer.
+    if trainer.accelerator.is_main_process:
+        trainer.tokenizer.save_pretrained(training_args.output_dir)
+        logger.info(f"Tokenizer saved to {training_args.output_dir}")
+
     kwargs = {
         "finetuned_from": model_args.model_name_or_path,
         "dataset": list(data_args.dataset_mixer.keys()),
         "dataset_tags": list(data_args.dataset_mixer.keys()),
-        "tags": ["alignment-handbook", "inpo"],  # MODIFIED
+        "tags": ["alignment-handbook", "inpo"], # MODIFIED
     }
     if trainer.accelerator.is_main_process:
         trainer.create_model_card(**kwargs)
@@ -263,13 +250,13 @@ def main():
     ##########
     # Evaluate
     ##########
-    if training_args.do_eval:
-        logger.info("*** Evaluate ***")
-        metrics = trainer.evaluate()
-        if "test" in raw_datasets:
-            metrics["eval_samples"] = len(raw_datasets["test"])
-        trainer.log_metrics("eval", metrics)
-        trainer.save_metrics("eval", metrics)
+    # if training_args.do_eval:
+    #     logger.info("*** Evaluate ***")
+    #     metrics = trainer.evaluate()
+    #     if "test" in raw_datasets:
+    #         metrics["eval_samples"] = len(raw_datasets["test"])
+    #     trainer.log_metrics("eval", metrics)
+    #     trainer.save_metrics("eval", metrics)
 
     if training_args.push_to_hub is True:
         logger.info("Pushing to hub...")

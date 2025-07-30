@@ -1,216 +1,411 @@
-# import sys
-# print("PYTHONPATH includes:\n", sys.path)
-import logging
-import sys
-from tqdm import tqdm
+import os
+import json
 from dataclasses import dataclass, field
-from typing import List, Optional, Dict, Any
+from typing import Optional, List
 
+import numpy as np
 import torch
-import transformers
-from accelerate import Accelerator
-from datasets import load_dataset, DatasetDict
-from torch.utils.data import DataLoader
-from transformers import AutoModelForCausalLM, HfArgumentParser, AutoTokenizer, PreTrainedTokenizerBase
 
-# 假设这些是你项目中的辅助工具和配置
-from alignment import DataArguments, H4ArgumentParser, ModelArguments
-from alignment.data import is_openai_format
-from inpo_scripts.run_inpo import get_batch_logps  # 从我们之前的脚本导入logps计算函数
-
-from trl.trainer.utils import DPODataCollatorWithPadding
-import pprint
-
-logger = logging.getLogger(__name__)
+from datasets import Dataset, load_dataset, load_from_disk, DatasetDict
+from inpo_scripts.precompute_trainer import PreComputer
+from transformers import (
+    AutoModelForCausalLM,
+    AutoModelForImageClassification,
+    AutoTokenizer,
+    HfArgumentParser,
+)
+from tqdm import tqdm
+from trl import DPOConfig
 
 
-# =====================================================================================
-# NEW: 专为预计算设计的参数类
-# =====================================================================================
 @dataclass
-class PrecomputationArgs:
-    input_dataset_name: str = field(metadata={"help": "Path or name of the input dataset."})
-    output_dataset_path: str = field(metadata={"help": "Path to save the final augmented dataset."})
-    reference_model_path: str = field(metadata={"help": "Path to the initial SFT/reference model."})
-    history_model_paths: Optional[List[str]] = field(
-        default_factory=list,
-        metadata={"help": "A list of paths to historical models for logps computation.", "nargs": "*"},
+class ScriptArguments:
+    """
+    The arguments for the DPO training script.
+    """
+
+    # data parameters, i.e., the KL penalty in the paper
+    beta: Optional[float] = field(default=0.005, metadata={"help": "the beta parameter for DPO loss"})
+
+    # training parameters
+    model_name_or_path: Optional[str] = field(
+        default="sshleifer/tiny-gpt2",
+        metadata={"help": "the location of the model name or path"},
     )
-    per_device_batch_size: int = field(default=4, metadata={"help": "Batch size per device for precomputation."})
-    torch_dtype: str = field(default="bfloat16",
-                             metadata={"help": "Torch dtype for loading models (e.g., bfloat16, float16)."})
+    ref_model: Optional[str] = field(
+        default="",
+        metadata={"help": "the location of the SFT model name or path"},
+    )
+    last_model: Optional[str] = field(
+        default="",
+        metadata={"help": "the location of the last iteratioin model name or path"},
+    )
+    train_dir: Optional[str] = field(
+        default="./data/uf_split0_responses_K8_reward.json",
+        metadata={"help": "the location of the dataset name or path"},
+    )
+    eval_dir: Optional[str] = field(
+        default=None,  # "/export/home/data/gemma_it_2b_3w_k8_with_pairrm_rewards.json",
+        metadata={"help": "the location of the evalset name or path"},
+    )
+    learning_rate: Optional[float] = field(default=5e-7, metadata={"help": "optimizer learning rate"})
+    lr_scheduler_type: Optional[str] = field(
+        default="constant_with_warmup", metadata={"help": "the lr scheduler type"}
+    )
+    warmup_steps: Optional[int] = field(default=100, metadata={"help": "the number of warmup steps"})
+    weight_decay: Optional[float] = field(default=0.01, metadata={"help": "the weight decay"})
+    optimizer_type: Optional[str] = field(default="paged_adamw_32bit", metadata={"help": "the optimizer type"})
+
+    per_device_train_batch_size: Optional[int] = field(default=1, metadata={"help": "train batch size per device"})
+    per_device_eval_batch_size: Optional[int] = field(default=1, metadata={"help": "eval batch size per device"})
+    gradient_accumulation_steps: Optional[int] = field(
+        default=16, metadata={"help": "the number of gradient accumulation steps"}
+    )
+    gradient_checkpointing: Optional[bool] = field(
+        default=True, metadata={"help": "whether to use gradient checkpointing"}
+    )
+
+    eos_padding: Optional[bool] = field(default=True, metadata={"help": "whether to pad with eos token"})
+    lora_alpha: Optional[float] = field(default=16, metadata={"help": "the lora alpha parameter"})
+    lora_dropout: Optional[float] = field(default=0.05, metadata={"help": "the lora dropout parameter"})
+    lora_r: Optional[int] = field(default=8, metadata={"help": "the lora r parameter"})
+
+    margin_scale: Optional[float] = field(default=1.0, metadata={"help": "the margin scale"})
+
+    max_prompt_length: Optional[int] = field(default=1000, metadata={"help": "the maximum prompt length"})
+    max_length: Optional[int] = field(default=2048, metadata={"help": "the maximum sequence length"})
+    max_steps: Optional[int] = field(default=-1, metadata={"help": "max number of training steps"})
+    num_train_epochs: Optional[int] = field(default=2, metadata={"help": "max number of training epochs"})
+    logging_steps: Optional[int] = field(default=2, metadata={"help": "the logging frequency"})
+    save_strategy: Optional[str] = field(default="epoch", metadata={"help": "the saving strategy"})
+    save_steps: Optional[int] = field(default=50000, metadata={"help": "the saving frequency"})
+    eval_steps: Optional[int] = field(default=100, metadata={"help": "the evaluation frequency"})
+    run_name: Optional[str] = field(default="dpo_soft", metadata={"help": "the run name"})
+    loss_type: Optional[str] = field(default="sigmoid", metadata={"help": "the loss type"})
+    output_dir: Optional[str] = field(default="./dpo_soft", metadata={"help": "the output directory"})
+    log_freq: Optional[int] = field(default=1, metadata={"help": "the logging frequency"})
+
+    # instrumentation
+    sanity_check: Optional[bool] = field(default=False, metadata={"help": "only train on 1000 samples"})
+
+    max_training_samples: Optional[int] = field(default=-1, metadata={"help": "the maximum sample size"})
+
+    choose_type: Optional[str] = field(default="max_min", metadata={"help": "the choose type"})
+
+    report_to: Optional[str] = field(
+        default="none",
+        metadata={
+            "help": 'The list of integrations to report the results and logs to. Supported platforms are `"azure_ml"`,'
+                    '`"comet_ml"`, `"mlflow"`, `"neptune"`, `"tensorboard"`,`"clearml"` and `"wandb"`. '
+                    'Use `"all"` to report to all integrations installed, `"none"` for no integrations.'
+        },
+    )
+    # debug argument for distributed training
+    ignore_bias_buffers: Optional[bool] = field(
+        default=False,
+        metadata={
+            "help": "fix for DDP issues with LM bias/mask buffers - invalid scalar type,`inplace operation. See"
+                    "https://github.com/huggingface/transformers/issues/22482#issuecomment-1595790992"
+        },
+    )
+    eot_token: Optional[str] = field(default="", metadata={"help": "the end of text token"})
+    mask_prompt: Optional[bool] = field(default=False, metadata={"help": "mask prompt"})
+    len_penalty: Optional[float] = field(default=0, metadata={"help": "the length penalty"})
+    history_paths: Optional[List[str]] = field(default_factory=list)
+    max_history_t: Optional[int] = field(default=2, metadata={"help": "the maximum history length"})
 
 
-class DPODataCollator:
+def load_flexible_dataset(dataset_name_or_path, cache_dir=None, split="train"):
     """
-    用于处理 prompt + chosen / rejected 数据结构，提取 assistant 回复并拼接。
-    输入数据样例：
-        {
-            "prompt": "question...",
-            "chosen": [{"role": "user", ...}, {"role": "assistant", "content": "..."}],
-            "rejected": [{"role": "user", ...}, {"role": "assistant", "content": "..."}]
-        }
+    Loads a dataset from a local path (file or directory) or the Hugging Face Hub.
+
+    :param dataset_name_or_path: Path to a file/directory or a Hub dataset name.
+    :param cache_dir: Directory for caching data.
+    :param split: The dataset split to load.
+    :return: The loaded dataset.
     """
+    # 检查路径是否指向一个确切存在的文件
+    if os.path.isfile(dataset_name_or_path):
+        print(f"检测到本地文件路径: {dataset_name_or_path}")
+        # 对于单个文件，我们需要指定文件类型。这里我们做得更通用一些。
+        file_type = dataset_name_or_path.split('.')[-1]
+        if file_type == 'jsonl':
+            file_type = 'json'  # .jsonl文件使用json加载器
 
-    def __init__(self, tokenizer: PreTrainedTokenizerBase, max_length: int = 2048, label_pad_token_id: int = -100):
-        self.tokenizer = tokenizer
-        self.max_length = max_length
-        self.label_pad_token_id = label_pad_token_id
+        print(f"推断文件类型为 '{file_type}'，正在加载...")
+        try:
+            return load_dataset(
+                file_type,
+                data_files=dataset_name_or_path,
+                split=split,
+                cache_dir=cache_dir
+            )
+        except Exception as e:
+            print(f"使用推断的类型 '{file_type}' 加载失败，尝试强制使用 'json' 加载器...")
+            # 如果自动推断失败，回退到原始的强制json加载
+            return load_dataset(
+                "json",
+                data_files=dataset_name_or_path,
+                split=split,
+                cache_dir=cache_dir
+            )
 
-    def __call__(self, features: List[Dict[str, Any]]) -> Dict[str, torch.Tensor]:
-        prompts = [f["prompt"] for f in features]
-        chosen_responses = [f["chosen"][-1]["content"] for f in features]
-        rejected_responses = [f["rejected"][-1]["content"] for f in features]
+    # 如果不是文件，那它可能是目录或Hub名称
+    # `load_dataset` 函数本身就能智能处理这两种情况，无需我们手动检查 os.path.isdir
+    else:
+        if os.path.isdir(dataset_name_or_path):
+            print(f"检测到本地文件夹路径: {dataset_name_or_path}，尝试作为已保存的数据集加载...")
+            # 1. 从磁盘加载对象，它可能是 Dataset 或 DatasetDict
+            loaded_object = load_from_disk(dataset_name_or_path)
 
-        chosen_texts = [p + c for p, c in zip(prompts, chosen_responses)]
-        rejected_texts = [p + r for p, r in zip(prompts, rejected_responses)]
+            # 2. 检查加载对象的类型
+            if isinstance(loaded_object, Dataset):
+                # 情况A: 如果加载的是单个Dataset，说明已保存的数据只有一个split。
+                # 这种情况下我们直接返回这个Dataset即可。
+                print("   -> 加载的对象是单个Dataset，直接返回。")
+                return loaded_object
 
-        # === 1. Tokenize separately WITHOUT padding ===
-        chosen = self.tokenizer(chosen_texts, padding=False, truncation=True, max_length=self.max_length)
-        rejected = self.tokenizer(rejected_texts, padding=False, truncation=True, max_length=self.max_length)
+            elif isinstance(loaded_object, DatasetDict):
+                # 情况B: 如果加载的是DatasetDict，我们从中选择需要的split。
+                # 这是我们之前的逻辑，现在它被放在了正确的位置。
+                print("   -> 加载的对象是DatasetDict，从中选择split...")
+                if split in loaded_object:
+                    return loaded_object[split]
+                else:
+                    available_splits = list(loaded_object.keys())
+                    raise ValueError(
+                        f"Split '{split}' not found in the loaded dataset. Available splits are: {available_splits}")
 
-        # === 2. 统一长度 padding 到两者最大值 ===
-        max_len = max(
-            max(len(x) for x in chosen["input_ids"]),
-            max(len(x) for x in rejected["input_ids"])
-        )
-        chosen = self.tokenizer.pad(chosen, padding="max_length", max_length=max_len, return_tensors="pt")
-        rejected = self.tokenizer.pad(rejected, padding="max_length", max_length=max_len, return_tensors="pt")
-
-        prompt_encodings = self.tokenizer(prompts, padding=False, truncation=True, max_length=self.max_length)
-        prompt_lens = [len(x) for x in prompt_encodings["input_ids"]]
-
-        chosen_labels = chosen["input_ids"].clone()
-        rejected_labels = rejected["input_ids"].clone()
-        for i, l in enumerate(prompt_lens):
-            chosen_labels[i, :l] = self.label_pad_token_id
-            rejected_labels[i, :l] = self.label_pad_token_id
-
-        return {
-            "chosen_input_ids": chosen["input_ids"],
-            "chosen_attention_mask": chosen["attention_mask"],
-            "chosen_labels": chosen_labels,
-            "rejected_input_ids": rejected["input_ids"],
-            "rejected_attention_mask": rejected["attention_mask"],
-            "rejected_labels": rejected_labels,
-        }
+            else:
+                # 处理未知类型
+                raise TypeError(f"Loaded object from disk is of an unexpected type: {type(loaded_object)}")
 
 
-def compute_and_add_logps(
-        dataset: DatasetDict,
-        model_path: str,
-        tokenizer: transformers.PreTrainedTokenizerBase,
-        args: PrecomputationArgs,
-        accelerator: Accelerator,
-        column_prefix: str,
-        max_length: int = 2048,
-) -> DatasetDict:
+        else:
+            print(f"未检测到本地路径: {dataset_name_or_path}，尝试从Hugging Face Hub加载...")
+            return load_dataset(
+                dataset_name_or_path,
+                split=split,
+                cache_dir=cache_dir
+            )
+
+
+def prepare_data(
+        dataset_name_or_path: str = "princeton-nlp/gemma2-ultrafeedback-armorm",
+        sanity_check: bool = False,
+        cache_dir: str = None,
+        num_proc=24,
+        eot_token="",
+        length_penalty=0,  # 此参数在数据准备阶段未使用，但保留以保持函数签名一致
+) -> Dataset:
     """
-    使用指定模型计算 chosen 和 rejected 的 logps，并添加到数据集。
-    使用自定义 DataCollator 自动处理拼接与 masking。
+    为DPO训练准备数据集，此函数适配 "princeton-nlp/gemma2-ultrafeedback-armorm" 格式。
+    它会直接从Hugging Face Hub加载数据集，并提取 prompt, chosen, 和 rejected 列。
     """
-    logger.info(f"--- Processing model: {model_path} for columns with prefix: '{column_prefix}' ---")
+    print(f"从 '{dataset_name_or_path}' 加载数据...")
 
-    # 加载模型
-    model_dtype = getattr(torch, args.torch_dtype)
-    model = AutoModelForCausalLM.from_pretrained(
-        model_path,
-        torch_dtype=model_dtype,
-        use_cache=False,
-    ).eval()
-    model = accelerator.prepare_model(model)
+    ds = load_flexible_dataset(dataset_name_or_path, cache_dir=cache_dir)
 
-    # 初始化 Collator
-    data_collator = DPODataCollator(tokenizer, max_length=max_length)
+    # 如果是健全性检查，只选择少量样本
+    if sanity_check:
+        print("执行健全性检查，仅使用100个样本。")
+        ds = ds.select(range(min(len(ds), 100)))
 
-    for split in dataset.keys():
-        split_dataset = dataset[split]
-        logger.info(f"Computing logps for '{split}' split...")
+    prompts = []
+    pos = []  # 存储 "chosen" 回答
+    neg = []  # 存储 "rejected" 回答
 
-        dataloader = DataLoader(split_dataset, batch_size=args.per_device_batch_size,
-                                shuffle=False, collate_fn=data_collator)
-        dataloader = accelerator.prepare(dataloader)
+    # 遍历数据集并提取所需字段
+    # 使用tqdm来显示进度条
+    for sample in tqdm(ds, desc="正在处理数据集"):
+        # prompt 是一个顶层字段，直接获取
+        prompts.append(sample["prompt"])
 
-        all_chosen_logps, all_rejected_logps = [], []
+        # 'chosen' 和 'rejected' 字段是一个包含两个字典的列表。
+        # 第一个字典是用户角色，第二个字典是助手的回答。我们需要的是助手的回答内容。
+        if sample.get("chosen") and len(sample["chosen"]) > 1 and sample["chosen"][1].get("role") == "assistant":
+            chosen_content = sample["chosen"][1]["content"]
+            pos.append(chosen_content + eot_token)
+        else:
+            # 如果格式不符，我们可以跳过这个样本，但需要确保列表长度一致
+            # 为了简单起见，这里假设数据格式总是正确的
+            continue
 
-        for batch in tqdm(dataloader, desc=f"Computing '{column_prefix}' logps for {split}"):
-            with torch.no_grad():
-                # 将输入送入模型
-                input_ids = torch.cat([batch["chosen_input_ids"], batch["rejected_input_ids"]], dim=0)
-                attention_mask = torch.cat([batch["chosen_attention_mask"], batch["rejected_attention_mask"]], dim=0)
-                labels = torch.cat([batch["chosen_labels"], batch["rejected_labels"]], dim=0)
+        if sample.get("rejected") and len(sample["rejected"]) > 1 and sample["rejected"][1].get("role") == "assistant":
+            rejected_content = sample["rejected"][1]["content"]
+            neg.append(rejected_content + eot_token)
+        else:
+            # 如果rejected格式不符，为了保持数据对齐，我们需要移除刚刚添加的prompt和chosen
+            prompts.pop()
+            pos.pop()
+            continue
 
-                input_ids = input_ids.to(accelerator.device)
-                attention_mask = attention_mask.to(accelerator.device)
-                labels = labels.to(accelerator.device)
+    # 确保所有列表的长度都相等，这是一个好习惯
+    assert len(prompts) == len(pos) == len(neg), "处理后的样本数量不匹配！"
 
-                logits = model(input_ids=input_ids, attention_mask=attention_mask).logits
+    # 用提取出的数据创建一个新的Dataset对象
+    dataset = Dataset.from_dict({"prompt": prompts, "chosen": pos, "rejected": neg})
 
-                all_logps = get_batch_logps(logits, labels, label_pad_token_id=-100)
-                bsz = batch["chosen_input_ids"].size(0)
-                chosen_logps, rejected_logps = all_logps[:bsz], all_logps[bsz:]
+    print(f"成功加载并处理了 {len(dataset)} 条样本。")
 
-            chosen_logps, rejected_logps = accelerator.gather_for_metrics((chosen_logps, rejected_logps))
-            all_chosen_logps.append(chosen_logps.cpu())
-            all_rejected_logps.append(rejected_logps.cpu())
-
-        dataset[split] = split_dataset.add_column(f"{column_prefix}_chosen_logps", torch.cat(all_chosen_logps).numpy())
-        dataset[split] = split_dataset.add_column(f"{column_prefix}_rejected_logps",
-                                                  torch.cat(all_rejected_logps).numpy())
-        logger.info(f"Added '{column_prefix}_*' logps to '{split}' split.")
-
-    del model
-    accelerator.free_memory()
-    torch.cuda.empty_cache()
-    logger.info(f"--- Finished processing model: {model_path}. Memory cleaned. ---")
     return dataset
 
 
-def main():
-    parser = HfArgumentParser(PrecomputationArgs)
-    args = parser.parse_args_into_dataclasses()[0]
+def precompute_multi_history(
+        history_model_paths: List[str],
+):
+    history_logps_list = []
+    for step_idx, model_path in enumerate(history_model_paths):
+        print(f"[History Step {step_idx}] Loading model from: {model_path}")
 
-    logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(name)s - %(message)s")
+        history_model = AutoModelForCausalLM.from_pretrained(
+            model_path,
+            torch_dtype=torch.bfloat16,
+            use_flash_attention_2=True,
+            use_cache=False
+        )
 
-    accelerator = Accelerator()
-    tokenizer = AutoTokenizer.from_pretrained(args.reference_model_path)  # 用参考模型路径初始化tokenizer即可
+        pre = PreComputer(
+            random_model,
+            ref_model=history_model,
+            args=training_args,
+            train_dataset=train_dataset,
+            tokenizer=tokenizer,
+            mask_prompt=script_args.mask_prompt,
+            len_penalty=script_args.len_penalty,
+        )
 
-    # 1. 加载原始数据集
-    logger.info(f"Loading initial dataset from: {args.input_dataset_name}")
-    if args.input_dataset_name.endswith((".json", ".jsonl")):
-        current_dataset = DatasetDict.from_json({"train": args.input_dataset_name})
-    else:
-        current_dataset = load_dataset(args.input_dataset_name)
-
-    # 2. 计算参考模型的 logps
-    current_dataset = compute_and_add_logps(
-        dataset=current_dataset,
-        model_path=args.reference_model_path,
-        tokenizer=tokenizer,
-        args=args,
-        accelerator=accelerator,
-        column_prefix="reference",
-    )
-
-    # 3. 遍历历史模型列表，依次计算 logps
-    if args.history_model_paths:
-        for i, model_path in enumerate(args.history_model_paths):
-            current_dataset = compute_and_add_logps(
-                dataset=current_dataset,
-                model_path=model_path,
-                tokenizer=tokenizer,
-                args=args,
-                accelerator=accelerator,
-                column_prefix=f"history{i}",
-            )
-
-    # 4. 保存最终的、包含所有 logps 的数据集
-    if accelerator.is_main_process:
-        logger.info(f"All computations finished. Final columns: {current_dataset['train'].column_names}")
-        logger.info(f"Saving final augmented dataset to: {args.output_dataset_path}")
-        current_dataset.save_to_disk(args.output_dataset_path)
-        logger.info("Script finished successfully.")
+        chosen_logps, rejected_logps = pre.precompute()
+        history_logps_list.append((chosen_logps, rejected_logps))
+    return history_logps_list
 
 
 if __name__ == "__main__":
-    main()
+    parser = HfArgumentParser(ScriptArguments)
+    script_args = parser.parse_args_into_dataclasses()[0]
+
+    # model = AutoModelForCausalLM.from_pretrained(
+    #     script_args.model_name_or_path,
+    #     use_flash_attention_2=True,
+    #     torch_dtype=torch.float16,
+    # )
+    # model.config.use_cache = False
+
+    random_model = AutoModelForCausalLM.from_pretrained(script_args.model_name_or_path, use_cache=False)
+
+    if script_args.ignore_bias_buffers:
+        # torch distributed hack
+        random_model._ddp_params_and_buffers_to_ignore = [
+            name for name, buffer in random_model.named_buffers() if buffer.dtype == torch.bool
+        ]
+
+    if script_args.ref_model:
+        ref_name = script_args.ref_model
+    else:
+        ref_name = script_args.model_name_or_path
+
+    last_name = script_args.last_model
+
+    model = AutoModelForCausalLM.from_pretrained(
+        ref_name,
+        torch_dtype=torch.bfloat16,
+        use_flash_attention_2=True,
+        use_cache=False
+    )
+
+    tokenizer = AutoTokenizer.from_pretrained(ref_name)
+    tokenizer.padding_side = 'left'
+
+    if script_args.eos_padding:
+        tokenizer.pad_token = tokenizer.eos_token
+    else:
+        tokenizer.add_special_tokens({"pad_token": "[PAD]"})
+        model.config.vocab_size += 1
+        ref_model.config.vocab_size += 1
+        model.config.pad_token_id = tokenizer.pad_token_id
+        ref_model.config.pad_token_id = tokenizer.pad_token_id
+        model.resize_token_embeddings(len(tokenizer))
+        ref_model.resize_token_embeddings(len(tokenizer))
+
+    # 2. Load the Stack-exchange paired dataset
+    train_dataset = prepare_data(
+        dataset_name_or_path=script_args.train_dir,
+        sanity_check=script_args.sanity_check,
+        eot_token=script_args.eot_token,
+        length_penalty=script_args.len_penalty,
+    )
+    if script_args.max_training_samples > 0:
+        train_dataset = train_dataset.select(range(script_args.max_training_samples))
+
+    training_args = DPOConfig(
+        per_device_train_batch_size=script_args.per_device_train_batch_size,
+        per_device_eval_batch_size=script_args.per_device_eval_batch_size,
+        # max_steps=script_args.max_steps,
+        num_train_epochs=script_args.num_train_epochs,
+        save_strategy=script_args.save_strategy,
+        logging_steps=script_args.logging_steps,
+        save_steps=script_args.save_steps,
+        gradient_accumulation_steps=script_args.gradient_accumulation_steps,
+        gradient_checkpointing=script_args.gradient_checkpointing,
+        learning_rate=script_args.learning_rate,
+        output_dir=script_args.output_dir,
+        # report_to=script_args.report_to,
+        lr_scheduler_type=script_args.lr_scheduler_type,
+        warmup_steps=script_args.warmup_steps,
+        # optim=script_args.optimizer_type,
+        bf16=True,
+        remove_unused_columns=False,
+        run_name=script_args.run_name,
+        beta=script_args.beta,
+        loss_type=script_args.loss_type,
+        max_prompt_length=script_args.max_prompt_length,
+        max_length=script_args.max_length,
+    )
+    # print(training_args)
+
+    # 5. initialize the DPO trainer
+
+    pre = PreComputer(
+        random_model,
+        ref_model=model,
+        args=training_args,
+        train_dataset=train_dataset,
+        tokenizer=tokenizer,
+        mask_prompt=script_args.mask_prompt,
+        len_penalty=script_args.len_penalty,
+    )
+    print("begin to precompute")
+    reference_chosen_logps, reference_rejected_logps = pre.precompute()
+    # for s in pre_dataset:
+    #     print(len(s["chosen_input_ids"]), len(s["chosen_attention_mask"]), len(s["chosen_labels"]))
+
+    # precompute history model logps
+    history_paths = script_args.history_paths
+    if script_args.max_history_t > 0 and history_paths:
+        history_paths = history_paths[-script_args.max_history_t:][::-1]
+
+    history_logps = []
+    if not history_paths:  # iter = 1
+        history_logps = precompute_multi_history(
+            history_model_paths=[script_args.last_model],
+        )
+    else:
+        history_logps = precompute_multi_history(
+            history_model_paths=history_paths,
+        )
+
+    pre_dataset = pre.train_dataset
+
+    pre_dataset = pre_dataset.add_column(name="reference_chosen_logps", column=reference_chosen_logps)
+    pre_dataset = pre_dataset.add_column(name="reference_rejected_logps", column=reference_rejected_logps)
+
+    for j, (cj, rj) in enumerate(history_logps):
+        pre_dataset = pre_dataset.add_column(f"history{j}_chosen_logps", cj)
+        pre_dataset = pre_dataset.add_column(f"history{j}_rejected_logps", rj)
+
+    pre_dataset.save_to_disk(script_args.output_dir, num_shards=1)
+    # with open(output_path, "w", encoding="utf8") as f:
+    #     json.dump(pre_dataset, f, ensure_ascii=False)
+
+
+
