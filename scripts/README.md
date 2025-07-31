@@ -1,6 +1,8 @@
 # Environment
 sim
 ```shell
+conda create -n sim python=3.10
+conda activate sim
 conda install pytorch==2.2.2 torchvision==0.17.2 torchaudio==2.2.2 pytorch-cuda=12.1 -c pytorch -c nvidia -y
 pip install \
   https://github.com/Dao-AILab/flash-attention/releases/download/v2.7.4.post1/flash_attn-2.7.4.post1+cu12torch2.2cxx11abiFALSE-cp310-cp310-linux_x86_64.whl \
@@ -18,6 +20,8 @@ pip install \
 ```
 inpo
 ```shell
+conda create -n inpo python=3.10
+conda activate inpo
 pip install \
   torch==2.6.0 torchvision==0.21.0 torchaudio==2.6.0 --index-url https://download.pytorch.org/whl/cu124 \
   vllm==0.8.5 \

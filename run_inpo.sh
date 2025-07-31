@@ -43,7 +43,7 @@ echo "iter2: Starting on policy data gen"
  for SEED in 13 21 42 79 100
  do
      echo "Running decode with seed $SEED..."
-     conda run -n vllm python -m on_policy_data_gen.decode \
+     conda run -n inpo python -m on_policy_data_gen.decode \
      --data_dir "data/gemma2_ufb_part2.jsonl" \
      --seed "$SEED" \
      --sanity_check False \
@@ -51,7 +51,7 @@ echo "iter2: Starting on policy data gen"
      --num_gpu 8 # Tensor Parallelism
  done
 
- conda run -n vllm python -m on_policy_data_gen.post_process \
+ conda run -n inpo python -m on_policy_data_gen.post_process \
      --generation_file_dir "datasets/gemma2_ultrafeedback/inpo_iter2"
 
  conda run -n sim python -m on_policy_data_gen.reward_model_annotate \
@@ -92,7 +92,7 @@ echo "iter3: Starting on policy data gen"
  for SEED in 13 21 42 79 100
  do
      echo "Running decode with seed $SEED..."
-     conda run -n vllm python -m on_policy_data_gen.decode \
+     conda run -n inpo python -m on_policy_data_gen.decode \
      --data_dir "data/gemma2_ufb_part3.jsonl" \
      --seed "$SEED" \
      --sanity_check False \
@@ -100,7 +100,7 @@ echo "iter3: Starting on policy data gen"
      --num_gpu 8 # Tensor Parallelism
  done
 
- conda run -n vllm python -m on_policy_data_gen.post_process \
+ conda run -n inpo python -m on_policy_data_gen.post_process \
      --generation_file_dir "datasets/gemma2_ultrafeedback/inpo_iter3"
 
  conda run -n sim python -m on_policy_data_gen.reward_model_annotate \
