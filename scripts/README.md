@@ -1,7 +1,7 @@
 # Environment
 sim
 ```shell
-conda create -n sim python=3.10
+conda create -n sim python=3.10 -y
 conda activate sim
 conda install pytorch==2.2.2 torchvision==0.17.2 torchaudio==2.2.2 pytorch-cuda=12.1 -c pytorch -c nvidia -y
 pip install \
@@ -20,7 +20,7 @@ pip install \
 ```
 inpo
 ```shell
-conda create -n inpo python=3.10
+conda create -n inpo python=3.10 -y
 conda activate inpo
 pip install \
   torch==2.6.0 torchvision==0.21.0 torchaudio==2.6.0 --index-url https://download.pytorch.org/whl/cu124 \
