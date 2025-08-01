@@ -7,20 +7,20 @@ export PYTHONPATH=$(pwd)
 history_paths=()
 
 # divide dataset into 3 subsets with 20000 rows each.
-conda run -n sim python -m inpo_scripts.split_dataset
+#conda run -n sim python -m inpo_scripts.split_dataset
 
 # ------------------------iter1------------------------
-history_args=""
+#history_args=""
 
  # precompute # --config_file ./accelerate_configs/zero2.yaml
- conda run -n sim accelerate launch --num_processes=8 -m inpo_scripts.precompute \
-     --run_name "inpo_iter1" \
-     --train_dir "princeton-nlp/gemma2-ultrafeedback-armorm" \
-     --output_dir "data/inpo_iter1/pref" \
-     --ref_model google/gemma-2-9b-it --last_model google/gemma-2-9b-it \
-     --loss_type inpo --lr_scheduler_type cosine \
-     $history_args \
-     --sanity_check False
+# conda run -n sim accelerate launch --num_processes=8 -m inpo_scripts.precompute \
+#     --run_name "inpo_iter1" \
+#     --train_dir "princeton-nlp/gemma2-ultrafeedback-armorm" \
+#     --output_dir "data/inpo_iter1/pref" \
+#     --ref_model google/gemma-2-9b-it --last_model google/gemma-2-9b-it \
+#     --loss_type inpo --lr_scheduler_type cosine \
+#     $history_args \
+#     --sanity_check False
 
 # train
 echo "iter1: start training"
