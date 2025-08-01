@@ -23,16 +23,16 @@ history_paths=()
 #     --sanity_check False
 
 # train
-echo "iter1: start training"
+#echo "iter1: start training"
 
-ACCELERATE_LOG_LEVEL=info conda run -n sim accelerate launch \
-    --config_file accelerate_configs/deepspeed_zero3.yaml \
-    -m inpo_scripts.run_inpo \
-    training_configs/gemma-2-9b-it-inpo-iter1.yaml \
+#ACCELERATE_LOG_LEVEL=info conda run -n sim accelerate launch \
+#    --config_file accelerate_configs/deepspeed_zero3.yaml \
+#    -m inpo_scripts.run_inpo \
+#    training_configs/gemma-2-9b-it-inpo-iter1.yaml \
 
 history_paths+=("./outputs/gemma-2-9b-it_inpo_stage_1/")
 
-echo "Completed iteration 1"
+#echo "Completed iteration 1"
 
 # ------------------------iter2------------------------
 echo "Starting iteration 2"

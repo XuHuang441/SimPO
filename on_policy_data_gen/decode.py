@@ -20,15 +20,30 @@ parser.add_argument('--seed', type=int, default=42,
                     help='Random seed')
 parser.add_argument('--output_dir', type=str, default="datasets/gemma2_ultrafeedback",
                     help='output_dir')
+parser.add_argument('--num_gpu', type=int, default=4)
+parser.add_argument('--sanity_check', type=bool, default=False)
 args = parser.parse_args()
 
 print(args)
 
 data_dir = args.data_dir
-llm = LLM(model=args.model)
+llm = LLM(model=args.model, tensor_parallel_size=args.num_gpu)
 tokenizer = llm.get_tokenizer()
 
-train_dataset= load_dataset(data_dir, split='train_prefs')
+if os.path.exists(data_dir):
+    # 如果输入是一个存在的本地文件路径
+    print("检测到本地文件路径，正在加载本地文件...")
+    # 使用 'json' 加载器，它同时支持 .json 和 .jsonl 文件
+    train_dataset = load_dataset("json", data_files=data_dir, split="train")
+else:
+    # 如果不是本地文件路径，则假定它是一个Hugging Face Hub上的数据集名称
+    print("未检测到本地文件，尝试从Hugging Face Hub加载...")
+    train_dataset = load_dataset(data_dir, split="train")
+
+# 如果是健全性检查，只选择少量样本
+if args.sanity_check:
+    print("执行健全性检查，仅使用100个样本。")
+    train_dataset = train_dataset.select(range(min(len(train_dataset), 100)))
 
 prompts = sorted(list(set(train_dataset['prompt'])))
 
