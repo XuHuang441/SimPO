@@ -24,9 +24,9 @@ print(f"Part 3 size: {len(dataset_part3)}")
 
 # 5. 保存到磁盘，为你的3轮迭代做准备
 print("Saving splits to disk...")
-dataset_part1.to_json("home/hubing/SimPO/data/gemma2_ufb_part1.jsonl")
-dataset_part2.to_json("home/hubing/SimPO/data/gemma2_ufb_part2.jsonl")
-dataset_part3.to_json("home/hubing/SimPO/data/gemma2_ufb_part3.jsonl")
+dataset_part1.to_json("/home/hubing/SimPO/data/gemma2_ufb_part1.jsonl")
+dataset_part2.to_json("/home/hubing/SimPO/data/gemma2_ufb_part2.jsonl")
+dataset_part3.to_json("/home/hubing/SimPO/data/gemma2_ufb_part3.jsonl")
 
 print("Done!")
 
