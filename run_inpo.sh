@@ -46,7 +46,6 @@ echo "iter2: Starting on policy data gen"
      conda run -n inpo python -m on_policy_data_gen.decode \
      --data_dir "/home/hubing/SimPO/data/gemma2_ufb_part2.jsonl" \
      --seed "$SEED" \
-     --sanity_check False \
      --output_dir "/home/hubing/SimPO/datasets/gemma2_ultrafeedback/inpo_iter2" \
      --num_gpu 8 # Tensor Parallelism
  done
@@ -95,7 +94,6 @@ echo "iter3: Starting on policy data gen"
      conda run -n inpo python -m on_policy_data_gen.decode \
      --data_dir "/home/hubing/SimPO/data/gemma2_ufb_part3.jsonl" \
      --seed "$SEED" \
-     --sanity_check False \
      --output_dir "/home/hubing/SimPO/datasets/gemma2_ultrafeedback/inpo_iter3" \
      --num_gpu 8 # Tensor Parallelism
  done

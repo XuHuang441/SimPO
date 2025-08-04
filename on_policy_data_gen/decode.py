@@ -21,7 +21,7 @@ parser.add_argument('--seed', type=int, default=42,
 parser.add_argument('--output_dir', type=str, default="datasets/gemma2_ultrafeedback",
                     help='output_dir')
 parser.add_argument('--num_gpu', type=int, default=4)
-parser.add_argument('--sanity_check', type=bool, default=False)
+parser.add_argument('--sanity_check', action='store_true', help="启用健全性检查（只用100个样本）")
 args = parser.parse_args()
 
 print(args)
