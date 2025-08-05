@@ -30,6 +30,7 @@ pip install \
   https://github.com/Dao-AILab/flash-attention/releases/download/v2.7.4.post1/flash_attn-2.7.4.post1+cu12torch2.6cxx11abiFALSE-cp310-cp310-linux_x86_64.whl \
   deepspeed==0.17.2 \
   huggingface-hub==0.33.2 \
-  flashinfer-python -i https://flashinfer.ai/whl/cu124/torch2.6/
+  flashinfer-python -i https://flashinfer.ai/whl/cu124/torch2.6/ \
+  more_itertools
 
 ```

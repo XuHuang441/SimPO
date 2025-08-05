@@ -1,5 +1,7 @@
 # /home/hubing/miniconda3/envs/sim/bin/pip
 
+set -e
+
 source ~/miniconda3/etc/profile.d/conda.sh
 conda activate /home/hubing/miniconda3/envs/sim
 export PYTHONPATH=$(pwd)
@@ -40,20 +42,20 @@ echo "Starting iteration 2"
 # on policy data gen
 echo "iter2: Starting on policy data gen"
 
- for SEED in 13 21 42 79 100
- do
+for SEED in 13 21 42 79 100
+  do
      echo "Running decode with seed $SEED..."
-     conda run -n inpo python -m on_policy_data_gen.decode \
+     stdbuf -oL -eL /home/hubing/miniconda3/envs/inpo/bin/python -u -m on_policy_data_gen.decode \
      --data_dir "/home/hubing/SimPO/data/gemma2_ufb_part2.jsonl" \
      --seed "$SEED" \
      --output_dir "/home/hubing/SimPO/datasets/gemma2_ultrafeedback/inpo_iter2" \
      --num_gpu 8 # Tensor Parallelism
- done
+  done
 
- conda run -n inpo python -m on_policy_data_gen.post_process \
+conda run -n inpo python -m on_policy_data_gen.post_process \
      --generation_file_dir "/home/hubing/SimPO/datasets/gemma2_ultrafeedback/inpo_iter2"
 
- conda run -n sim python -m on_policy_data_gen.reward_model_annotate \
+conda run -n sim python -m on_policy_data_gen.reward_model_annotate \
      --generation_file "/home/hubing/SimPO/datasets/gemma2_ultrafeedback/inpo_iter2/all_outputs.json" \
      --output_dir "/home/hubing/SimPO/datasets/gemma2_ultrafeedback/inpo_iter2"
 
@@ -88,20 +90,20 @@ echo "Completed iteration 2"
 # on policy data gen
 echo "iter3: Starting on policy data gen"
 
- for SEED in 13 21 42 79 100
- do
+for SEED in 13 21 42 79 100
+  do
      echo "Running decode with seed $SEED..."
-     conda run -n inpo python -m on_policy_data_gen.decode \
+     stdbuf -oL -eL /home/hubing/miniconda3/envs/inpo/bin/python -u -m on_policy_data_gen.decode \
      --data_dir "/home/hubing/SimPO/data/gemma2_ufb_part3.jsonl" \
      --seed "$SEED" \
      --output_dir "/home/hubing/SimPO/datasets/gemma2_ultrafeedback/inpo_iter3" \
      --num_gpu 8 # Tensor Parallelism
- done
+  done
 
- conda run -n inpo python -m on_policy_data_gen.post_process \
+conda run -n inpo python -m on_policy_data_gen.post_process \
      --generation_file_dir "/home/hubing/SimPO/datasets/gemma2_ultrafeedback/inpo_iter3"
 
- conda run -n sim python -m on_policy_data_gen.reward_model_annotate \
+conda run -n sim python -m on_policy_data_gen.reward_model_annotate \
      --generation_file "/home/hubing/SimPO/datasets/gemma2_ultrafeedback/inpo_iter3/all_outputs.json" \
      --output_dir "/home/hubing/SimPO/datasets/gemma2_ultrafeedback/inpo_iter3"
 
