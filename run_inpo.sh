@@ -49,7 +49,7 @@ for SEED in 13 21 42 79 100
      --data_dir "/home/hubing/SimPO/data/gemma2_ufb_part2.jsonl" \
      --seed "$SEED" \
      --output_dir "/home/hubing/SimPO/datasets/gemma2_ultrafeedback/inpo_iter2" \
-     --batch_size 1024 \
+     --batch_size 4096 \
      --num_gpu 8 # Tensor Parallelism
   done
 
@@ -98,7 +98,7 @@ for SEED in 13 21 42 79 100
      --data_dir "/home/hubing/SimPO/data/gemma2_ufb_part3.jsonl" \
      --seed "$SEED" \
      --output_dir "/home/hubing/SimPO/datasets/gemma2_ultrafeedback/inpo_iter3" \
-     --batch_size 1024 \
+     --batch_size 4096 \
      --num_gpu 8 # Tensor Parallelism
   done
 
