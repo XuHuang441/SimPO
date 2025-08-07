@@ -3,13 +3,13 @@
 set -e
 
 source ~/miniconda3/etc/profile.d/conda.sh
-conda activate /home/hubing/miniconda3/envs/sim
+#conda activate /home/hubing/miniconda3/envs/sim
 export PYTHONPATH=$(pwd)
 
 history_paths=()
 
 # divide dataset into 3 subsets with 20000 rows each.
-#conda run -n sim python -m inpo_scripts.split_dataset
+conda run -n inpo python -m inpo_scripts.split_dataset
 
 # ------------------------iter1------------------------
 #history_args=""
@@ -47,6 +47,7 @@ for SEED in 13 21 42 79 100
      echo "Running decode with seed $SEED..."
      stdbuf -oL -eL /home/hubing/miniconda3/envs/inpo/bin/python -u -m on_policy_data_gen.new_decode \
      --data_dir "/home/hubing/SimPO/data/gemma2_ufb_part2.jsonl" \
+     --model "google/gemma-2-9b-it" \
      --seed "$SEED" \
      --output_dir "/home/hubing/SimPO/datasets/gemma2_ultrafeedback/inpo_iter2" \
      --batch_size 8192 \
@@ -98,6 +99,7 @@ for SEED in 13 21 42 79 100
 #     echo "Running decode with seed $SEED..."
 #     stdbuf -oL -eL /home/hubing/miniconda3/envs/inpo/bin/python -u -m on_policy_data_gen.decode \
 #     --data_dir "/home/hubing/SimPO/data/gemma2_ufb_part3.jsonl" \
+#     --model "/home/hubing/SimPO/outputs/gemma-2-9b-it_inpo_stage_2/" \
 #     --seed "$SEED" \
 #     --output_dir "/home/hubing/SimPO/datasets/gemma2_ultrafeedback/inpo_iter3" \
 #     --batch_size 8192 \
