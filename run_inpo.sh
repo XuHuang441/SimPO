@@ -52,6 +52,7 @@ for SEED in 13 21 42 79 100
      --batch_size 8192 \
      --sanity_check \
      --num_gpu 8 # Tensor Parallelism
+     break
   done
 
 #conda run -n inpo python -m on_policy_data_gen.post_process \
