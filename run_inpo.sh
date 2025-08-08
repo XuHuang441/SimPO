@@ -17,7 +17,7 @@ history_args=""
 #  precompute # --config_file ./accelerate_configs/zero2.yaml
 /home/hubing/miniconda3/envs/sim/bin/accelerate launch --num_processes=8 -m inpo_scripts.precompute \
      --run_name "inpo_iter1" \
-     --train_dir "princeton-nlp/gemma2-ultrafeedback-armorm" \
+     --train_dir "/home/hubing/SimPO/data/gemma2_ufb_part1.jsonl" \
      --output_dir "data/inpo_iter1/pref" \
      --ref_model google/gemma-2-9b-it --last_model google/gemma-2-9b-it \
      --loss_type inpo --lr_scheduler_type cosine \
