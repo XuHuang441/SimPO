@@ -14,7 +14,8 @@ pip install \
   huggingface-hub==0.23.2 \
   datasets==2.18.0 \
   peft==0.7.1 \
-  wandb
+  wandb \
+  safetensors==0.5.3
 
 
 ```
