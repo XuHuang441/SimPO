@@ -45,7 +45,7 @@ echo "iter2: Starting on policy data gen"
 for SEED in 13 21 42 79 100
   do
      echo "Running decode with seed $SEED..."
-     stdbuf -oL -eL /home/hubing/.conda/envs/inpo/bin/python -u -m on_policy_data_gen.new_decode \
+     stdbuf -oL -eL /home/hubing/miniconda3/envs/inpo/bin/python -u -m on_policy_data_gen.new_decode \
      --data_dir "/home/hubing/SimPO/data/gemma2_ufb_part2.jsonl" \
      --model "google/gemma-2-9b-it" \
      --seed "$SEED" \
