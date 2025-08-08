@@ -15,7 +15,7 @@ conda run -n inpo python -m inpo_scripts.split_dataset
 history_args=""
 
 #  precompute # --config_file ./accelerate_configs/zero2.yaml
- conda run -n sim accelerate launch --num_processes=8 -m inpo_scripts.precompute \
+/home/hubing/miniconda3/envs/sim/bin/accelerate launch --num_processes=8 -m inpo_scripts.precompute \
      --run_name "inpo_iter1" \
      --train_dir "princeton-nlp/gemma2-ultrafeedback-armorm" \
      --output_dir "data/inpo_iter1/pref" \
@@ -27,7 +27,7 @@ history_args=""
 # train
 echo "iter1: start training"
 
-ACCELERATE_LOG_LEVEL=info conda run -n sim accelerate launch \
+ACCELERATE_LOG_LEVEL=info /home/hubing/miniconda3/envs/sim/bin/accelerate launch \
     --config_file accelerate_configs/deepspeed_zero3.yaml \
     -m inpo_scripts.run_inpo \
     training_configs/gemma-2-9b-it-inpo-iter1.yaml \
@@ -54,10 +54,10 @@ for SEED in 13 21 42 79 100
      --num_gpu 8 # Tensor Parallelism
   done
 
-conda run -n inpo python -m on_policy_data_gen.post_process \
+/home/hubing/miniconda3/envs/inpo/bin/python -m on_policy_data_gen.post_process \
      --generation_file_dir "/home/hubing/SimPO/datasets/gemma2_ultrafeedback/inpo_iter2"
 
-conda run -n sim python -m on_policy_data_gen.reward_model_annotate \
+/home/hubing/miniconda3/envs/inpo/bin/python -m on_policy_data_gen.reward_model_annotate \
      --generation_file "/home/hubing/SimPO/datasets/gemma2_ultrafeedback/inpo_iter2/all_outputs.json" \
      --output_dir "/home/hubing/SimPO/datasets/gemma2_ultrafeedback/inpo_iter2"
 
@@ -67,7 +67,7 @@ history_args=""
 if [ ${#history_paths[@]} -gt 0 ]; then
     history_args="--history_paths ${history_paths[@]}"
 fi
-conda run -n sim accelerate launch --num_processes=8 -m inpo_scripts.precompute \
+/home/hubing/miniconda3/envs/sim/bin/accelerate launch --num_processes=8 -m inpo_scripts.precompute \
     --run_name "inpo_iter2" \
     --train_dir "/home/hubing/SimPO/datasets/gemma2_ultrafeedback/inpo_iter2" \
     --output_dir "/home/hubing/SimPO/data/inpo_iter2/pref" \
@@ -79,7 +79,7 @@ conda run -n sim accelerate launch --num_processes=8 -m inpo_scripts.precompute 
 # train
 echo "iter2: start training"
 
-ACCELERATE_LOG_LEVEL=info conda run -n sim accelerate launch \
+ACCELERATE_LOG_LEVEL=info /home/hubing/miniconda3/envs/sim/bin/accelerate launch \
     --config_file accelerate_configs/deepspeed_zero3.yaml \
     -m inpo_scripts.run_inpo \
     training_configs/gemma-2-9b-it-inpo-iter2.yaml \
@@ -104,10 +104,10 @@ for SEED in 13 21 42 79 100
      --num_gpu 8 # Tensor Parallelism
   done
 
-conda run -n inpo python -m on_policy_data_gen.post_process \
+/home/hubing/miniconda3/envs/inpo/bin/python -m on_policy_data_gen.post_process \
      --generation_file_dir "/home/hubing/SimPO/datasets/gemma2_ultrafeedback/inpo_iter3"
 
-conda run -n sim python -m on_policy_data_gen.reward_model_annotate \
+/home/hubing/miniconda3/envs/inpo/bin/python -m on_policy_data_gen.reward_model_annotate \
      --generation_file "/home/hubing/SimPO/datasets/gemma2_ultrafeedback/inpo_iter3/all_outputs.json" \
      --output_dir "/home/hubing/SimPO/datasets/gemma2_ultrafeedback/inpo_iter3"
 
@@ -117,7 +117,7 @@ history_args=""
 if [ ${#history_paths[@]} -gt 0 ]; then
     history_args="--history_paths ${history_paths[@]}"
 fi
-conda run -n sim accelerate launch --num_processes=8 -m inpo_scripts.precompute \
+/home/hubing/miniconda3/envs/sim/bin/accelerate launch --num_processes=8 -m inpo_scripts.precompute \
     --run_name "inpo_iter3" \
     --train_dir "/home/hubing/SimPO/datasets/gemma2_ultrafeedback/inpo_iter3" \
     --output_dir "/home/hubing/SimPO/data/inpo_iter3/pref" \
@@ -128,7 +128,7 @@ conda run -n sim accelerate launch --num_processes=8 -m inpo_scripts.precompute 
 
 # train
 echo "iter3: start training"
-ACCELERATE_LOG_LEVEL=info conda run -n sim accelerate launch \
+ACCELERATE_LOG_LEVEL=info /home/hubing/miniconda3/envs/sim/bin/accelerate launch \
     --config_file accelerate_configs/deepspeed_zero3.yaml \
     -m inpo_scripts.run_inpo \
     training_configs/gemma-2-9b-it-inpo-iter3.yaml \
