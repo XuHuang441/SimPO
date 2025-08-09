@@ -15,7 +15,9 @@ pip install \
   datasets==2.18.0 \
   peft==0.7.1 \
   wandb \
+  # for A100?
   safetensors==0.5.3
+  huggingface-hub==0.24.7
 
 
 ```
