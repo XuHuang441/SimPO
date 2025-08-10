@@ -57,7 +57,7 @@ echo "Starting iteration 2"
 #/home/hubing/miniconda3/envs/inpo/bin/python -m on_policy_data_gen.post_process \
 #     --generation_file_dir "/home/hubing/SimPO/datasets/gemma2_ultrafeedback/inpo_iter2"
 
-/home/hubing/miniconda3/envs/inpo/bin/python -m on_policy_data_gen.reward_model_annotate \
+/home/hubing/miniconda3/envs/sim/bin/python -m on_policy_data_gen.reward_model_annotate \
      --generation_file "/home/hubing/SimPO/datasets/gemma2_ultrafeedback/inpo_iter2/all_outputs.json" \
      --output_dir "/home/hubing/SimPO/datasets/gemma2_ultrafeedback/inpo_iter2"
 
@@ -107,7 +107,7 @@ for SEED in 13 21 42 79 100
 /home/hubing/miniconda3/envs/inpo/bin/python -m on_policy_data_gen.post_process \
      --generation_file_dir "/home/hubing/SimPO/datasets/gemma2_ultrafeedback/inpo_iter3"
 
-/home/hubing/miniconda3/envs/inpo/bin/python -m on_policy_data_gen.reward_model_annotate \
+/home/hubing/miniconda3/envs/sim/bin/python -m on_policy_data_gen.reward_model_annotate \
      --generation_file "/home/hubing/SimPO/datasets/gemma2_ultrafeedback/inpo_iter3/all_outputs.json" \
      --output_dir "/home/hubing/SimPO/datasets/gemma2_ultrafeedback/inpo_iter3"
 
