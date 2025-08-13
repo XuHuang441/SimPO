@@ -25,16 +25,16 @@ history_args=""
      --sanity_check False
 
 # train
-echo "iter1: start training"
-
-ACCELERATE_LOG_LEVEL=info /home/hubing/miniconda3/envs/sim/bin/accelerate launch \
-    --config_file accelerate_configs/deepspeed_zero3.yaml \
-    -m inpo_scripts.run_inpo \
-    training_configs/gemma-2-9b-it-inpo-iter1.yaml \
-
-history_paths+=("/home/hubing/SimPO/outputs/gemma-2-9b-it_inpo_stage_1/")
-
-echo "Completed iteration 1"
+#echo "iter1: start training"
+#
+#ACCELERATE_LOG_LEVEL=info /home/hubing/miniconda3/envs/sim/bin/accelerate launch \
+#    --config_file accelerate_configs/deepspeed_zero3.yaml \
+#    -m inpo_scripts.run_inpo \
+#    training_configs/gemma-2-9b-it-inpo-iter1.yaml \
+#
+#history_paths+=("/home/hubing/SimPO/outputs/gemma-2-9b-it_inpo_stage_1/")
+#
+#echo "Completed iteration 1"
 
 # ------------------------iter2------------------------
 #echo "Starting iteration 2"
