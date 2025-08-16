@@ -40,26 +40,26 @@ history_paths+=("/home/hubing/SimPO/outputs/gemma-2-9b-it_inpo_stage_1/")
 echo "Starting iteration 2"
 
 # on policy data gen
-echo "iter2: Starting on policy data gen"
-
-for SEED in 13 21 42 79 100
-  do
-     echo "Running decode with seed $SEED..."
-     stdbuf -oL -eL /home/hubing/miniconda3/envs/inpo/bin/python -u -m on_policy_data_gen.decode \
-     --data_dir "/home/hubing/SimPO/data/gemma2_ufb_part2.jsonl" \
-     --model "/home/hubing/SimPO/outputs/gemma-2-9b-it_inpo_stage_1" \
-     --seed "$SEED" \
-     --output_dir "/home/hubing/SimPO/datasets/gemma2_ultrafeedback/inpo_iter2" \
-     --batch_size 8192 \
-     --num_gpu 8 # Tensor Parallelism
-  done
-
-/home/hubing/miniconda3/envs/inpo/bin/python -m on_policy_data_gen.post_process \
-     --generation_file_dir "/home/hubing/SimPO/datasets/gemma2_ultrafeedback/inpo_iter2"
-
-/home/hubing/miniconda3/envs/sim/bin/python -m on_policy_data_gen.reward_model_annotate \
-     --generation_file "/home/hubing/SimPO/datasets/gemma2_ultrafeedback/inpo_iter2/all_outputs.json" \
-     --output_dir "/home/hubing/SimPO/datasets/gemma2_ultrafeedback/inpo_iter2"
+#echo "iter2: Starting on policy data gen"
+#
+#for SEED in 13 21 42 79 100
+#  do
+#     echo "Running decode with seed $SEED..."
+#     stdbuf -oL -eL /home/hubing/miniconda3/envs/inpo/bin/python -u -m on_policy_data_gen.decode \
+#     --data_dir "/home/hubing/SimPO/data/gemma2_ufb_part2.jsonl" \
+#     --model "/home/hubing/SimPO/outputs/gemma-2-9b-it_inpo_stage_1" \
+#     --seed "$SEED" \
+#     --output_dir "/home/hubing/SimPO/datasets/gemma2_ultrafeedback/inpo_iter2" \
+#     --batch_size 8192 \
+#     --num_gpu 8 # Tensor Parallelism
+#  done
+#
+#/home/hubing/miniconda3/envs/inpo/bin/python -m on_policy_data_gen.post_process \
+#     --generation_file_dir "/home/hubing/SimPO/datasets/gemma2_ultrafeedback/inpo_iter2"
+#
+#/home/hubing/miniconda3/envs/sim/bin/python -m on_policy_data_gen.reward_model_annotate \
+#     --generation_file "/home/hubing/SimPO/datasets/gemma2_ultrafeedback/inpo_iter2/all_outputs.json" \
+#     --output_dir "/home/hubing/SimPO/datasets/gemma2_ultrafeedback/inpo_iter2"
 
 # precompute
 echo "iter2: start precompute"
@@ -67,7 +67,7 @@ history_args=""
 if [ ${#history_paths[@]} -gt 0 ]; then
     history_args="--history_paths ${history_paths[@]}"
 fi
-/home/hubing/miniconda3/envs/sim/bin/accelerate launch --num_processes=8 -m inpo_scripts.precompute \
+/home/hubing/miniconda3/envs/sim/bin/accelerate launch --num_processes=8 -m inpo_scripts.precompute_simpo_style \
     --run_name "inpo_iter2" \
     --train_dir "/home/hubing/SimPO/datasets/gemma2_ultrafeedback/inpo_iter2" \
     --output_dir "/home/hubing/SimPO/data/inpo_iter2/pref" \
@@ -117,7 +117,7 @@ history_args=""
 if [ ${#history_paths[@]} -gt 0 ]; then
     history_args="--history_paths ${history_paths[@]}"
 fi
-/home/hubing/miniconda3/envs/sim/bin/accelerate launch --num_processes=8 -m inpo_scripts.precompute \
+/home/hubing/miniconda3/envs/sim/bin/accelerate launch --num_processes=8 -m inpo_scripts.precompute_simpo_style \
     --run_name "inpo_iter3" \
     --train_dir "/home/hubing/SimPO/datasets/gemma2_ultrafeedback/inpo_iter3" \
     --output_dir "/home/hubing/SimPO/data/inpo_iter3/pref" \
