@@ -77,36 +77,36 @@ echo "Starting iteration 2"
 #    --sanity_check False
 
 # train
-echo "iter2: start training"
-
-ACCELERATE_LOG_LEVEL=info /home/hubing/miniconda3/envs/sim/bin/accelerate launch \
-    --config_file accelerate_configs/deepspeed_zero3.yaml \
-    -m inpo_scripts.run_inpo \
-    training_configs/gemma-2-9b-it-inpo-iter2.yaml \
+#echo "iter2: start training"
+#
+#ACCELERATE_LOG_LEVEL=info /home/hubing/miniconda3/envs/sim/bin/accelerate launch \
+#    --config_file accelerate_configs/deepspeed_zero3.yaml \
+#    -m inpo_scripts.run_inpo \
+#    training_configs/gemma-2-9b-it-inpo-iter2.yaml \
 
 history_paths+=("/home/hubing/SimPO/outputs/gemma-2-9b-it_inpo_stage_2/")
 
-echo "Completed iteration 2"
+#echo "Completed iteration 2"
 
  #------------------------iter3------------------------
 # on policy data gen
-#echo "iter3: Starting on policy data gen"
-#
-#for SEED in 13 21 42 79 100
-#  do
-#     echo "Running decode with seed $SEED..."
-#     stdbuf -oL -eL /home/hubing/miniconda3/envs/inpo/bin/python -u -m on_policy_data_gen.decode \
-#     --data_dir "/home/hubing/SimPO/data/gemma2_ufb_part3.jsonl" \
-#     --model "/home/hubing/SimPO/outputs/gemma-2-9b-it_inpo_stage_2/" \
-#     --seed "$SEED" \
-#     --output_dir "/home/hubing/SimPO/datasets/gemma2_ultrafeedback/inpo_iter3" \
-#     --batch_size 8192 \
-#     --num_gpu 8 # Tensor Parallelism
-#  done
-#
-#/home/hubing/miniconda3/envs/inpo/bin/python -m on_policy_data_gen.post_process \
-#     --generation_file_dir "/home/hubing/SimPO/datasets/gemma2_ultrafeedback/inpo_iter3"
-#
+echo "iter3: Starting on policy data gen"
+
+for SEED in 13 21 42 79 100
+  do
+     echo "Running decode with seed $SEED..."
+     stdbuf -oL -eL /home/hubing/miniconda3/envs/inpo/bin/python -u -m on_policy_data_gen.decode \
+     --data_dir "/home/hubing/SimPO/data/gemma2_ufb_part3.jsonl" \
+     --model "/home/hubing/SimPO/outputs/gemma-2-9b-it_inpo_stage_2/" \
+     --seed "$SEED" \
+     --output_dir "/home/hubing/SimPO/datasets/gemma2_ultrafeedback/inpo_iter3" \
+     --batch_size 8192 \
+     --num_gpu 8 # Tensor Parallelism
+  done
+
+/home/hubing/miniconda3/envs/inpo/bin/python -m on_policy_data_gen.post_process \
+     --generation_file_dir "/home/hubing/SimPO/datasets/gemma2_ultrafeedback/inpo_iter3"
+
 #/home/hubing/miniconda3/envs/sim/bin/python -m on_policy_data_gen.reward_model_annotate \
 #     --generation_file "/home/hubing/SimPO/datasets/gemma2_ultrafeedback/inpo_iter3/all_outputs.json" \
 #     --output_dir "/home/hubing/SimPO/datasets/gemma2_ultrafeedback/inpo_iter3"
