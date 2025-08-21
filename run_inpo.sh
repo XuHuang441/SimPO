@@ -37,7 +37,7 @@ history_paths+=("/home/hubing/SimPO/outputs/gemma-2-9b-it_inpo_stage_1/")
 #echo "Completed iteration 1"
 
 # ------------------------iter2------------------------
-echo "Starting iteration 2"
+#echo "Starting iteration 2"
 
 # on policy data gen
 #echo "iter2: Starting on policy data gen"
@@ -107,24 +107,24 @@ history_paths+=("/home/hubing/SimPO/outputs/gemma-2-9b-it_inpo_stage_2/")
 #/home/hubing/miniconda3/envs/inpo/bin/python -m on_policy_data_gen.post_process \
 #     --generation_file_dir "/home/hubing/SimPO/datasets/gemma2_ultrafeedback/inpo_iter3"
 
-/home/hubing/miniconda3/envs/sim/bin/python -m on_policy_data_gen.reward_model_annotate \
-     --generation_file "/home/hubing/SimPO/datasets/gemma2_ultrafeedback/inpo_iter3/all_outputs.json" \
-     --output_dir "/home/hubing/SimPO/datasets/gemma2_ultrafeedback/inpo_iter3"
-
-# precompute
-echo "iter3: start precompute"
-history_args=""
-if [ ${#history_paths[@]} -gt 0 ]; then
-    history_args="--history_paths ${history_paths[@]}"
-fi
-/home/hubing/miniconda3/envs/sim/bin/accelerate launch --num_processes=8 -m inpo_scripts.precompute_simpo_style \
-    --run_name "inpo_iter3" \
-    --train_dir "/home/hubing/SimPO/datasets/gemma2_ultrafeedback/inpo_iter3" \
-    --output_dir "/home/hubing/SimPO/data/inpo_iter3/pref" \
-    --ref_model google/gemma-2-9b-it \
-    --loss_type inpo --lr_scheduler_type cosine \
-    $history_args \
-    --sanity_check False
+#/home/hubing/miniconda3/envs/sim/bin/python -m on_policy_data_gen.reward_model_annotate \
+#     --generation_file "/home/hubing/SimPO/datasets/gemma2_ultrafeedback/inpo_iter3/all_outputs.json" \
+#     --output_dir "/home/hubing/SimPO/datasets/gemma2_ultrafeedback/inpo_iter3"
+#
+## precompute
+#echo "iter3: start precompute"
+#history_args=""
+#if [ ${#history_paths[@]} -gt 0 ]; then
+#    history_args="--history_paths ${history_paths[@]}"
+#fi
+#/home/hubing/miniconda3/envs/sim/bin/accelerate launch --num_processes=8 -m inpo_scripts.precompute_simpo_style \
+#    --run_name "inpo_iter3" \
+#    --train_dir "/home/hubing/SimPO/datasets/gemma2_ultrafeedback/inpo_iter3" \
+#    --output_dir "/home/hubing/SimPO/data/inpo_iter3/pref" \
+#    --ref_model google/gemma-2-9b-it \
+#    --loss_type inpo --lr_scheduler_type cosine \
+#    $history_args \
+#    --sanity_check False
 
 # train
 echo "iter3: start training"
