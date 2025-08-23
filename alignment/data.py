@@ -16,7 +16,7 @@
 import os
 from typing import Any, List, Literal, Optional
 
-from datasets import DatasetDict, concatenate_datasets, load_dataset, load_from_disk
+from datasets import DatasetDict, concatenate_datasets, load_dataset, load_from_disk, Dataset
 from datasets.builder import DatasetGenerationError
 
 from .configs import DataArguments
@@ -175,6 +175,81 @@ def get_datasets(
     )
     return raw_datasets
 
+def load_flexible_dataset(dataset_name_or_path, cache_dir=None, split="train"):
+    """
+    Loads a dataset from a local path (file or directory) or the Hugging Face Hub.
+
+    :param dataset_name_or_path: Path to a file/directory or a Hub dataset name.
+    :param cache_dir: Directory for caching data.
+    :param split: The dataset split to load.
+    :return: The loaded dataset.
+    """
+    # 检查路径是否指向一个确切存在的文件
+    if os.path.isfile(dataset_name_or_path):
+        print(f"检测到本地文件路径: {dataset_name_or_path}")
+        # 对于单个文件，我们需要指定文件类型。这里我们做得更通用一些。
+        file_type = dataset_name_or_path.split('.')[-1]
+        if file_type == 'jsonl':
+            file_type = 'json'  # .jsonl文件使用json加载器
+
+        print(f"推断文件类型为 '{file_type}'，正在加载...")
+        try:
+            return load_dataset(
+                file_type,
+                data_files=dataset_name_or_path,
+                split=split,
+                cache_dir=cache_dir
+            )
+        except Exception as e:
+            print(f"使用推断的类型 '{file_type}' 加载失败，尝试强制使用 'json' 加载器...")
+            # 如果自动推断失败，回退到原始的强制json加载
+            return load_dataset(
+                "json",
+                data_files=dataset_name_or_path,
+                split=split,
+                cache_dir=cache_dir
+            )
+
+    # 如果不是文件，那它可能是目录或Hub名称
+    # `load_dataset` 函数本身就能智能处理这两种情况，无需我们手动检查 os.path.isdir
+    else:
+        if os.path.isdir(dataset_name_or_path):
+            print(f"检测到本地文件夹路径: {dataset_name_or_path}，尝试作为已保存的数据集加载...")
+            # 1. 从磁盘加载对象，它可能是 Dataset 或 DatasetDict
+            loaded_object = load_from_disk(dataset_name_or_path)
+
+            # 2. 检查加载对象的类型
+            if isinstance(loaded_object, Dataset):
+                # 情况A: 如果加载的是单个Dataset，说明已保存的数据只有一个split。
+                # 这种情况下我们直接返回这个Dataset即可。
+                print("   -> 加载的对象是单个Dataset，直接返回。")
+                return loaded_object
+
+            elif isinstance(loaded_object, DatasetDict):
+                # 情况B: 如果加载的是DatasetDict，我们从中选择需要的split。
+                # 这是我们之前的逻辑，现在它被放在了正确的位置。
+                print("   -> 加载的对象是DatasetDict，从中选择split...")
+                if split in loaded_object:
+                    return loaded_object[split]
+                else:
+                    available_splits = list(loaded_object.keys())
+                    raise ValueError(
+                        f"Split '{split}' not found in the loaded dataset. Available splits are: {available_splits}")
+
+            else:
+                # 处理未知类型
+                raise TypeError(f"Loaded object from disk is of an unexpected type: {type(loaded_object)}")
+
+
+        else:
+            print(f"未检测到本地路径: {dataset_name_or_path}，尝试从Hugging Face Hub加载...")
+            return load_dataset(
+                dataset_name_or_path,
+                split=split,
+                cache_dir=cache_dir
+            )
+
+
 
 def mix_datasets(
     dataset_mixer: dict,
@@ -213,12 +288,7 @@ def mix_datasets(
     for (ds, frac), ds_config in zip(dataset_mixer.items(), configs):
         fracs.append(frac)
         for split in splits:
-            try:
-                # Try first if dataset on a Hub repo
-                dataset = load_dataset(ds, ds_config, split=split)
-            except (DatasetGenerationError, ValueError):
-                # If not, check local dataset
-                dataset = load_from_disk(os.path.join(ds, split))
+            dataset = load_flexible_dataset(ds)
 
             # Remove redundant columns to avoid schema conflicts on load
             dataset = dataset.remove_columns([col for col in dataset.column_names if col not in columns_to_keep])
