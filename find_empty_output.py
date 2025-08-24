@@ -5,7 +5,7 @@ LOAD_JSON = True
 
 if LOAD_JSON:
     # 假设文件叫 data.json
-    with open("/Users/huangxu/Downloads/all_outputs_iter3_hb.json", "r", encoding="utf-8") as f:
+    with open("/home/hubing/SimPO/datasets/gemma2_ultrafeedback/simpo_iter2/all_outputs.json", "r", encoding="utf-8") as f:
         data = json.load(f)
 else:
     dataset = load_dataset("princeton-nlp/gemma2-ultrafeedback-armorm")
