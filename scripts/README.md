@@ -1,4 +1,10 @@
 # Environment
+环境配置完成后需要
+```shell
+huggingface-cli login
+wandb login
+```
+
 sim
 ```shell
 conda create -n sim python=3.10 -y
@@ -18,7 +24,8 @@ pip install \
   # for A100?
   safetensors==0.5.3
   huggingface-hub==0.24.7
-
+  # 原始配置: wandb 0.13.11, Python 3.10.14 transformers==4.42.4
+  # 原始配置: pip和conda里都要检查torch版本是否一致，不一致就uninstall一个
 
 ```
 inpo

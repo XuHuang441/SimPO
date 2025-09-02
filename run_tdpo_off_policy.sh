@@ -69,29 +69,29 @@ echo "Completed iteration 2"
  #------------------------iter3------------------------
 
 # precompute
-echo "iter3: start precompute"
-history_args=""
-if [ ${#history_paths[@]} -gt 0 ]; then
-    history_args="--history_paths ${history_paths[@]}"
-fi
-/home/hubing/miniconda3/envs/sim/bin/accelerate launch --num_processes=8 -m inpo_scripts.precompute_simpo_style \
-    --run_name "inpo_iter3" \
-    --train_dir "/home/hubing/SimPO/data/gemma2_ufb_part3.jsonl" \
-    --output_dir "/home/hubing/SimPO/data/inpo_iter3/pref" \
-    --ref_model google/gemma-2-9b-it \
-    --loss_type inpo --lr_scheduler_type cosine \
-    $history_args \
-    --sanity_check False
-
-# train
-echo "iter3: start training"
-ACCELERATE_LOG_LEVEL=info /home/hubing/miniconda3/envs/sim/bin/accelerate launch \
-    --config_file accelerate_configs/deepspeed_zero3.yaml \
-    -m inpo_scripts.run_inpo \
-    training_configs/gemma-2-9b-it-inpo-iter3.yaml \
-
-history_paths+=("/home/hubing/SimPO/outputs/gemma-2-9b-it_inpo_stage_3/")
-
-echo "Completed iteration 3"
+#echo "iter3: start precompute"
+#history_args=""
+#if [ ${#history_paths[@]} -gt 0 ]; then
+#    history_args="--history_paths ${history_paths[@]}"
+#fi
+#/home/hubing/miniconda3/envs/sim/bin/accelerate launch --num_processes=8 -m inpo_scripts.precompute_simpo_style \
+#    --run_name "inpo_iter3" \
+#    --train_dir "/home/hubing/SimPO/data/gemma2_ufb_part3.jsonl" \
+#    --output_dir "/home/hubing/SimPO/data/inpo_iter3/pref" \
+#    --ref_model google/gemma-2-9b-it \
+#    --loss_type inpo --lr_scheduler_type cosine \
+#    $history_args \
+#    --sanity_check False
+#
+## train
+#echo "iter3: start training"
+#ACCELERATE_LOG_LEVEL=info /home/hubing/miniconda3/envs/sim/bin/accelerate launch \
+#    --config_file accelerate_configs/deepspeed_zero3.yaml \
+#    -m inpo_scripts.run_inpo \
+#    training_configs/gemma-2-9b-it-inpo-iter3.yaml \
+#
+#history_paths+=("/home/hubing/SimPO/outputs/gemma-2-9b-it_inpo_stage_3/")
+#
+#echo "Completed iteration 3"
 
               
