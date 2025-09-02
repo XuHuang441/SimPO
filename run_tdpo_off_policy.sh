@@ -62,7 +62,7 @@ ACCELERATE_LOG_LEVEL=info /home/hubing/miniconda3/envs/sim/bin/accelerate launch
     -m inpo_scripts.run_inpo \
     training_configs/gemma-2-9b-it-inpo-iter2.yaml \
 
-history_paths+=("/home/hubing/SimPO/outputs/gemma-2-9b-it_inpo_stage_2/")
+history_paths+=("/home/hubing/SimPO/outputs/gemma-2-9b-it_off_policy_tdpo_stage_2/")
 
 echo "Completed iteration 2"
 
