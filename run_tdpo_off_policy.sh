@@ -49,6 +49,7 @@ fi
     --run_name "inpo_iter2" \
     --train_dir "/home/hubing_google_com/SimPO/data/gemma2_ufb_part2.jsonl" \
     --output_dir "/home/hubing_google_com/SimPO/data/inpo_iter2/pref" \
+    --model_name_or_path "/home/hubing_google_com/SimPO/outputs/gemma-2-9b-it_inpo_stage_1/" \
     --ref_model google/gemma-2-9b-it \
     --loss_type inpo --lr_scheduler_type cosine \
     $history_args \
