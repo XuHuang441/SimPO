@@ -30,17 +30,17 @@ pip install \
 ```
 inpo
 ```shell
-conda create -n inpo python=3.10 -y
+conda create -n inpo python=3.10 -y 
 conda activate inpo
 pip install \
   torch==2.6.0 torchvision==0.21.0 torchaudio==2.6.0 --index-url https://download.pytorch.org/whl/cu124 \
+  https://github.com/Dao-AILab/flash-attention/releases/download/v2.7.4.post1/flash_attn-2.7.4.post1+cu12torch2.6cxx11abiFALSE-cp310-cp310-linux_x86_64.whl \
+  flashinfer-python -i https://flashinfer.ai/whl/cu124/torch2.6/ \
   vllm==0.8.5 \
   transformers==4.53.1 \
   datasets==4.0.0 \
-  https://github.com/Dao-AILab/flash-attention/releases/download/v2.7.4.post1/flash_attn-2.7.4.post1+cu12torch2.6cxx11abiFALSE-cp310-cp310-linux_x86_64.whl \
   deepspeed==0.17.2 \
   huggingface-hub==0.33.2 \
-  flashinfer-python -i https://flashinfer.ai/whl/cu124/torch2.6/ \
   more_itertools
 
 ```
