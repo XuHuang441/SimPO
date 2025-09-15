@@ -1,7 +1,7 @@
 
 set -e
 
-source ~/home/hubing/.conda/etc/profile.d/conda.sh
+source ~/miniconda3/etc/profile.d/conda.sh
 conda activate /home/hubing/.conda/envs/sim
 export PYTHONPATH=$(pwd)
 
