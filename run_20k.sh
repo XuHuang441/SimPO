@@ -1,8 +1,8 @@
 
 set -e
 
-source ~/miniconda3/etc/profile.d/conda.sh
-conda activate /home/hubing/miniconda3/envs/sim
+source ~/home/hubing/.conda/etc/profile.d/conda.sh
+conda activate /home/hubing/.conda/envs/sim
 export PYTHONPATH=$(pwd)
 
 NTFY_TOPIC="https://ntfy.sh/m7Q0XXISTPpnpjxM"
@@ -48,7 +48,7 @@ history_paths=()
 history_args=""
 
 #  precompute # --config_file ./accelerate_configs/zero2.yaml
-#/home/hubing/miniconda3/envs/sim/bin/accelerate launch --num_processes=4 -m inpo_scripts.precompute_simpo_style \
+#/home/hubing/.conda/envs/sim/bin/accelerate launch --num_processes=4 -m inpo_scripts.precompute_simpo_style \
 #     --run_name "inpo_iter1_20k" \
 #     --train_dir "/home/hubing/SimPO/data/gemma2_ufb_part1_20k/gemma2_ufb_part1_split1.jsonl" \
 #     --output_dir "data/inpo_iter1_20k/pref" \
@@ -64,7 +64,7 @@ history_args=""
 # train
 #echo "iter1: start training"
 #
-#ACCELERATE_LOG_LEVEL=info /home/hubing/miniconda3/envs/sim/bin/accelerate launch \
+#ACCELERATE_LOG_LEVEL=info /home/hubing/.conda/envs/sim/bin/accelerate launch \
 #    --config_file accelerate_configs/deepspeed_zero3.yaml \
 #    -m inpo_scripts.run_inpo \
 #    training_configs/gemma-2-9b-it-inpo-20k-iter1.yaml
@@ -84,7 +84,7 @@ echo "Starting iteration 2"
 #for SEED in 13 21 42 79 100
 #  do
 #     echo "Running decode with seed $SEED..."
-#     stdbuf -oL -eL /home/hubing/miniconda3/envs/inpo/bin/python -u -m on_policy_data_gen.decode \
+#     stdbuf -oL -eL /home/hubing/.conda/envs/inpo/bin/python -u -m on_policy_data_gen.decode \
 #     --data_dir "/home/hubing/SimPO/data/gemma2_ufb_part1_20k/gemma2_ufb_part1_split2.jsonl" \
 #     --model "/home/hubing/SimPO/outputs/gemma-2-9b-it_inpo_20k_stage_1/checkpoint-50" \
 #     --seed "$SEED" \
@@ -94,15 +94,15 @@ echo "Starting iteration 2"
 #     --num_gpu 4 # Tensor Parallelism
 #  done
 #
-#/home/hubing/miniconda3/envs/inpo/bin/python -m on_policy_data_gen.post_process \
+#/home/hubing/.conda/envs/inpo/bin/python -m on_policy_data_gen.post_process \
 #     --generation_file_dir "/home/hubing/SimPO/datasets/gemma2_ultrafeedback/inpo_iter2_20k"
 
-#/home/hubing/miniconda3/envs/sim/bin/python -m on_policy_data_gen.reward_model_annotate \
+#/home/hubing/.conda/envs/sim/bin/python -m on_policy_data_gen.reward_model_annotate \
 #     --generation_file "/home/hubing/SimPO/datasets/gemma2_ultrafeedback/inpo_iter2_20k/all_outputs.json" \
 #     --output_dir "/home/hubing/SimPO/datasets/gemma2_ultrafeedback/inpo_iter2_20k" \
 #     --cache_dir "/home/hubing/SimPO/cache"
 
-#/home/hubing/miniconda3/envs/sim/bin/python -m on_policy_data_gen.reward_model_annotate_skywork \
+#/home/hubing/.conda/envs/sim/bin/python -m on_policy_data_gen.reward_model_annotate_skywork \
 #     --generation_file "/afs/.ir/users/f/a/fangwu97/.cache/huggingface/hub/models--XuHuang--inpo_iter1/snapshots/616f4bc181dead2cf5cf6bc4bf27e7f48bf067c8/all_outputs.json" \
 #     --output_dir "/home/hubing/SimPO/datasets/gemma2_ultrafeedback/inpo_iter2_skywork" \
 #     --cache_dir "/home/hubing/SimPO/cache"
@@ -115,7 +115,7 @@ echo "Starting iteration 2"
 #if [ ${#history_paths[@]} -gt 0 ]; then
 #    history_args="--history_paths ${history_paths[@]}"
 #fi
-#/home/hubing/miniconda3/envs/sim/bin/accelerate launch --num_processes=4 -m inpo_scripts.precompute_simpo_style \
+#/home/hubing/.conda/envs/sim/bin/accelerate launch --num_processes=4 -m inpo_scripts.precompute_simpo_style \
 #    --run_name "inpo_iter2" \
 #    --train_dir "/home/hubing/SimPO/datasets/gemma2_ultrafeedback/inpo_iter2_20k" \
 #    --output_dir "/home/hubing/SimPO/data/inpo_iter2_20k/pref" \
@@ -126,7 +126,7 @@ echo "Starting iteration 2"
 #    --cache_dir "/home/hubing/SimPO/cache" \
 #    --sanity_check False
 
-#/home/hubing/miniconda3/envs/sim/bin/accelerate launch --num_processes=4 -m inpo_scripts.precompute_simpo_style \
+#/home/hubing/.conda/envs/sim/bin/accelerate launch --num_processes=4 -m inpo_scripts.precompute_simpo_style \
 #    --run_name "inpo_iter2" \
 #    --train_dir "/home/hubing/SimPO/data/gemma2_ufb_part2_test.jsonl" \
 #    --output_dir "/home/hubing/SimPO/data/inpo_iter2/pref_rm/test" \
@@ -139,7 +139,7 @@ echo "Starting iteration 2"
 # train
 echo "iter2: start training"
 
-ACCELERATE_LOG_LEVEL=info /home/hubing/miniconda3/envs/sim/bin/accelerate launch \
+ACCELERATE_LOG_LEVEL=info /home/hubing/.conda/envs/sim/bin/accelerate launch \
     --config_file accelerate_configs/deepspeed_zero3.yaml \
     -m inpo_scripts.run_inpo \
     training_configs/gemma-2-9b-it-inpo-20k-iter2.yaml
@@ -158,7 +158,7 @@ echo "iter3: Starting on policy data gen"
 for SEED in 13 21 42 79 100
   do
      echo "Running decode with seed $SEED..."
-     stdbuf -oL -eL /home/hubing/miniconda3/envs/inpo/bin/python -u -m on_policy_data_gen.decode \
+     stdbuf -oL -eL /home/hubing/.conda/envs/inpo/bin/python -u -m on_policy_data_gen.decode \
      --data_dir "/home/hubing/SimPO/data/gemma2_ufb_part1_20k/gemma2_ufb_part1_split3.jsonl" \
      --model "/home/hubing/SimPO/outputs/gemma-2-9b-it_inpo_20k_stage_2/" \
      --seed "$SEED" \
@@ -168,10 +168,10 @@ for SEED in 13 21 42 79 100
      --num_gpu 8 # Tensor Parallelism
   done
 
-/home/hubing/miniconda3/envs/inpo/bin/python -m on_policy_data_gen.post_process \
+/home/hubing/.conda/envs/inpo/bin/python -m on_policy_data_gen.post_process \
      --generation_file_dir "/home/hubing/SimPO/datasets/gemma2_ultrafeedback/inpo_iter3_20k"
 # dont forget to check empty strings
-#/home/hubing/miniconda3/envs/sim/bin/python -m on_policy_data_gen.reward_model_annotate \
+#/home/hubing/.conda/envs/sim/bin/python -m on_policy_data_gen.reward_model_annotate \
 #     --generation_file "/afs/.ir/users/f/a/fangwu97/.cache/huggingface/hub/models--XuHuang--inpo_iter1/snapshots/fc8024b5e4353e5f74954d4133d20813267e77b8/all_outputs.json" \
 #     --output_dir "/home/hubing/SimPO/datasets/gemma2_ultrafeedback/inpo_iter3"
 #
@@ -181,7 +181,7 @@ for SEED in 13 21 42 79 100
 #if [ ${#history_paths[@]} -gt 0 ]; then
 #    history_args="--history_paths ${history_paths[@]}"
 #fi
-#/home/hubing/miniconda3/envs/sim/bin/accelerate launch --num_processes=4 -m inpo_scripts.precompute_simpo_style \
+#/home/hubing/.conda/envs/sim/bin/accelerate launch --num_processes=4 -m inpo_scripts.precompute_simpo_style \
 #    --run_name "inpo_iter3" \
 #    --train_dir "/home/hubing/SimPO/datasets/gemma2_ultrafeedback/inpo_iter3" \
 #    --output_dir "/home/hubing/SimPO/data/inpo_iter3/pref" \
@@ -193,7 +193,7 @@ for SEED in 13 21 42 79 100
 
 # train
 #echo "iter3: start training"
-#ACCELERATE_LOG_LEVEL=info  /home/hubing/miniconda3/envs/sim/bin/accelerate launch \
+#ACCELERATE_LOG_LEVEL=info  /home/hubing/.conda/envs/sim/bin/accelerate launch \
 #    --config_file accelerate_configs/deepspeed_zero3.yaml \
 #    -m inpo_scripts.run_inpo \
 #    training_configs/gemma-2-9b-it-inpo-iter3.yaml
