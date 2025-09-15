@@ -24,7 +24,7 @@ max_history_t: 2
 do_eval: true
 evaluation_strategy: steps
 eval_steps: 5
-gradient_accumulation_steps: 16
+gradient_accumulation_steps: 8
 gradient_checkpointing: true
 gradient_checkpointing_kwargs:
   use_reentrant: False
