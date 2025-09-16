@@ -25,13 +25,19 @@ parser.add_argument('--output_dir', type=str, default="datasets/gemma2_ultrafeed
 parser.add_argument('--num_gpu', type=int, default=4)
 parser.add_argument('--sanity_check', action='store_true', help="启用健全性检查（只用100个样本）")
 parser.add_argument('--batch_size', type=int, default=8)
-
+parser.add_argument('--cache_dir', type=str, default=None,
+                    help='Cache directory for model and dataset')
 args = parser.parse_args()
 
 print(args)
 
 data_dir = args.data_dir
-llm = LLM(model=args.model, tensor_parallel_size=args.num_gpu)
+llm = LLM(
+    model=args.model,
+    tensor_parallel_size=args.num_gpu,
+    download_dir=args.cache_dir,
+    # gpu_memory_utilization=0.9,  # 允许 VLLM 使用 90% 的 GPU 显存
+)
 tokenizer = llm.get_tokenizer()
 
 if os.path.exists(data_dir):
@@ -53,11 +59,10 @@ prompts = sorted(list(set(train_dataset['prompt'])))
 
 conversations = [tokenizer.apply_chat_template([{'role': 'user', 'content': prompt}], tokenize=False, add_generation_prompt=True) for prompt in prompts]
 
-sampling_params = SamplingParams(temperature=args.temperature, 
-                                 top_p=args.top_p, 
-                                 max_tokens=args.max_tokens, 
+sampling_params = SamplingParams(temperature=args.temperature,
+                                 top_p=args.top_p,
+                                 max_tokens=args.max_tokens,
                                  seed=args.seed,)
-
 batched_prompts = list(chunked(conversations, args.batch_size))
 output_data = []
 
